@@ -1,5 +1,20 @@
 #!/bin/bash
 
+# Configurações de depuração
+set -e  # Encerra o script se algum comando falhar
+set -x  # Habilita o modo de depuração
+LOGFILE="script.log"
+exec > >(tee -a "$LOGFILE") 2>&1  # Redireciona saída e erros para o arquivo de log
+
+# Função para verificar erros
+check_error() {
+    if [ $? -ne 0 ]; then
+        echo "Erro: Comando falhou - $1"
+        echo "Consulte o arquivo de log para mais detalhes: $LOGFILE"
+        exit 1  # Encerra o script em caso de erro crítico
+    fi
+}
+
 # Configuração básica do sistema
 sudo timedatectl set-ntp true
 sudo hwclock --systohc
@@ -44,7 +59,7 @@ sudo pacman -S --noconfirm --needed kitty kitty-terminfo man-db man-pages-pt_br 
 # Fontes para melhorar a aparência e compatibilidade
 sudo pacman -S --noconfirm --needed ttf-dejavu ttf-liberation ttf-ubuntu-font-family ttf-fira-code ttf-font-awesome noto-fonts noto-fonts-emoji
 
-# Suporte a sistema de arquivos
+# Suporte a sistema de arquivos e ferramentas para manipulação de dispositivos de armazenamento
 sudo pacman -S --noconfirm --needed os-prober intel-ucode dosfstools mtools freetype2 libisoburn fuse2 ntfs-3g e2fsprogs gvfs-{mtp,gphoto2,afc,smb} udisks2 polkit-gnome ifuse
 
 # Compactadores e descompactadores
@@ -58,18 +73,18 @@ sudo pacman -S --noconfirm --needed gst-libav gst-plugins-{base,good,bad,ugly} g
 
 # Bluetooth
 sudo pacman -S --noconfirm --needed bluez bluez-utils blueman
-systemctl enable --now bluetooth
+sudo systemctl enable --now bluetooth
 
 # Impressão e scan
 sudo pacman -S --noconfirm --needed avahi nss-mdns cups cups-pdf libcups print-manager system-config-printer simple-scan
 
 # ADB & SCRCPY
 sudo pacman -S --noconfirm --needed scrcpy android-tools android-udev
-usermod -aG adbusers $USER
+sudo usermod -aG adbusers $USER
 
 # ZSH
 sudo pacman -S --noconfirm --needed zsh zsh-completions 
-sudo chsh -s /usr/bin/zsh $USER 
+chsh -s /usr/bin/zsh $USER 
 
 # Ferramentas de desenvolvimento (opcional)
 sudo pacman -S --noconfirm --needed git base-devel python python-pip nodejs npm
@@ -104,28 +119,26 @@ packages=(
     "thunar-custom-actions"    
 )
 
-# Compila os pacotes com o yay (sem instalar)
-for pkg in "${packages[@]}"; do
-    yay -S --noconfirm --builddir ~/.cache/yay --downloadonly "$pkg"
-done
-
-# Instala os pacotes compilados com pacman -U
-for pkg in "${packages[@]}"; do
+for pkg in "${AUR_PACKAGES[@]}"; do
+    yay -G --builddir ~/.cache/yay "$pkg"
+    makepkg --noconfirm -s -C -p ~/.cache/yay/"$pkg"/PKGBUILD
     sudo pacman -U --noconfirm ~/.cache/yay/"$pkg"/*.pkg.tar.zst
 done
-
-echo "Instalação concluída!"
 
 # LightDM (gerenciador de login leve)
 sudo pacman -S --noconfirm --needed --needed lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings
 sudo systemctl enable lightdm
 
 # Configuração do i3wm
-sudo cp /etc/X11/xinit/xinitrc ~/.xinitrc
-echo "exec i3" >> ~/.xinitrc
-chmod +x ~/.xinitrc
+if ! grep -q "exec i3" ~/.xinitrc; then
+    cp /etc/X11/xinit/xinitrc ~/.xinitrc
+    echo "exec i3" >> ~/.xinitrc
+    chmod +x ~/.xinitrc
+fi
 
 # Mensagem final
-/bin/echo -e "\e[1;32mINSTALAÇÃO CONCLUÍDA! REINICIANDO EM 5 SEGUNDOS...\e[0m"
-#sleep 5
-#sudo reboot
+echo "Instalação concluída! Verifique o arquivo de log para detalhes: $LOGFILE"
+read -p "Reiniciar agora? (s/n): " resposta
+if [[ "$resposta" =~ ^[sS]$ ]]; then
+    sudo reboot
+fi
