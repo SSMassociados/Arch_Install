@@ -27,7 +27,7 @@ sudo sed -i '/multilib\]/,+1 s/^#//' /etc/pacman.conf && sudo pacman -Sy
 
 # Atualizar mirrorlist para obter os melhores mirrors
 sudo pacman -S --noconfirm --needed reflector
-systemctl enable --now reflector.timer
+sudo systemctl enable --now reflector.timer
 sudo reflector -l 7 -a 24 -p https --sort rate --save /etc/pacman.d/mirrorlist
 sudo pacman -Sy
 
@@ -84,42 +84,13 @@ sudo usermod -aG adbusers $USER
 
 # ZSH
 sudo pacman -S --noconfirm --needed zsh zsh-completions 
-chsh -s /usr/bin/zsh $USER 
+sudo chsh -s /usr/bin/zsh $USER 
 
 # Ferramentas de desenvolvimento (opcional)
 sudo pacman -S --noconfirm --needed git base-devel python python-pip nodejs npm
 
 # Suíte de escritório
 sudo pacman -S --noconfirm --needed libreoffice-still libreoffice-still-pt-br jre8-openjdk libmythes breeze-gtk 
-
-# Lista de pacotes do AUR a serem instalados
-packages=(
-    "wps-office"
-    "wps-office-mime"
-    "ttf-wps-fonts"
-    "wps-office-mui-pt-br"
-    "wps-office-vero-pt-br"
-    "libtiff5"
-    "qt5-styleplugins"
-    "qt6ct"
-    "qt6-tools-desktop"
-    "betterlockscreen"
-    "xidlehook"
-    "simplescreenrecorder"
-    "pkexec"
-    "djmount"
-    "autoadb-git"
-    "android-sdk-platform-tools"
-    "mythes-pt-br"
-    "libreoffice-extension-languagetool"
-    "hunspell-pt-br"
-    "hyphen-pt-br"
-    "hyph_pt_BR-213"
-    "hsqldb2-java"
-    "thunar-custom-actions"    
-)
-
-#!/bin/bash
 
 # Lista de pacotes do AUR a serem instalados
 packages=(
