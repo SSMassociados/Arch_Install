@@ -22,8 +22,14 @@ sudo hwclock --systohc
 # Fstrim
 sudo systemctl enable --now fstrim.timer
 
-# Habilitando repositório Multilib
-sudo sed -i '/multilib\]/,+1 s/^#//' /etc/pacman.conf && sudo pacman -Sy
+# Ativar VerbosePkgLists, ParallelDownloads, Color e ILoveCandy
+sudo sed -i '/^#VerbosePkgLists/s/^#//' /etc/pacman.conf
+sudo sed -i '/^#ParallelDownloads/s/^#//; /ParallelDownloads/s/=[^0-9]*/=5/' /etc/pacman.conf
+sudo sed -i '/^#Color/s/^#//' /etc/pacman.conf
+sudo sed -i '/^#ILoveCandy/s/^#//' /etc/pacman.conf
+
+# Descomentar o repositório multilib
+sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf && sudo pacman -Sy
 
 # Atualizar mirrorlist para obter os melhores mirrors
 sudo pacman -S --noconfirm --needed reflector
@@ -37,6 +43,7 @@ sudo pacman -Sy
 #sudo firewall-cmd --reload
 
 # Instalação do YAY (helper AUR)
+sudo pacman -S --noconfirm --needed go
 if ! command -v yay &> /dev/null; then
     cd /tmp
     git clone https://aur.archlinux.org/yay.git
