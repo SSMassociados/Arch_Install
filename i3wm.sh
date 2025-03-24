@@ -24,9 +24,13 @@ sudo systemctl enable --now fstrim.timer
 
 # Ativar VerbosePkgLists, ParallelDownloads, Color e ILoveCandy
 sudo sed -i '/^#VerbosePkgLists/s/^#//' /etc/pacman.conf
-sudo sed -i '/^#ParallelDownloads/s/^#//; /ParallelDownloads/s/=[^0-9]*/=5/' /etc/pacman.conf
+sudo sed -i 's/^#\(ParallelDownloads *= *\).*/\110/; s/^ParallelDownloads *= *.*/ParallelDownloads = 10/' /etc/pacman.conf
 sudo sed -i '/^#Color/s/^#//' /etc/pacman.conf
-sudo sed -i '/^#ILoveCandy/s/^#//' /etc/pacman.conf
+
+# Adicionar ILoveCandy logo após ParallelDownloads
+if ! grep -q "ILoveCandy" /etc/pacman.conf; then
+    sed -i '/ParallelDownloads/a ILoveCandy' /etc/pacman.conf
+fi
 
 # Descomentar o repositório multilib
 sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf && sudo pacman -Sy
