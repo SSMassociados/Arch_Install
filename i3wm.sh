@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Configurações de depuração
-set -e  # Encerra o script se algum comando falhar
-set -x  # Habilita o modo de depuração
+set -euo pipefail  # Garante que o script pare em qualquer erro
+set -x  # Ativa modo de depuração para ver comandos executados
 LOGFILE="script.log"
 exec > >(tee -a "$LOGFILE") 2>&1  # Redireciona saída e erros para o arquivo de log
 
@@ -22,15 +22,14 @@ sudo hwclock --systohc
 # Fstrim
 sudo systemctl enable --now fstrim.timer
 
-# Ativar VerbosePkgLists, ParallelDownloads, Color e ILoveCandy
-sudo sed -i '/^#VerbosePkgLists/s/^#//' /etc/pacman.conf
-sudo sed -i 's/^#\(ParallelDownloads *= *\).*/\110/; s/^ParallelDownloads *= *.*/ParallelDownloads = 10/' /etc/pacman.conf
-sudo sed -i '/^#Color/s/^#//' /etc/pacman.conf
-
-# Adicionar ILoveCandy logo após ParallelDownloads
-if ! grep -q "ILoveCandy" /etc/pacman.conf; then
-    sed -i '/ParallelDownloads/a ILoveCandy' /etc/pacman.conf
-fi
+# Pacman
+# Ativar CleanMethod, VerbosePkgLists, ParallelDownloads, Color e adiciona ILoveCandy
+sudo sed -i \
+    -e 's/^#\(VerbosePkgLists\)/\1/' \
+    -e 's/^#\(Color\)/\1/' \
+    -e 's/^#\(ParallelDownloads *= *\).*/\1 10/' \
+    -e 's/^ParallelDownloads *= *.*/ParallelDownloads = 10/' \
+    -e '/^ParallelDownloads = 10$/!b;n;/ILoveCandy/!a ILoveCandy' /etc/pacman.conf
 
 # Descomentar o repositório multilib
 sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf && sudo pacman -Sy
