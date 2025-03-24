@@ -37,9 +37,6 @@ sudo pacman -Sy
 #sudo firewall-cmd --reload
 
 # Instalação do YAY (helper AUR)
-# cd /tmp && git clone https://aur.archlinux.org/yay.git && cd yay && makepkg --noconfirm -s && sudo pacman -U --noconfirm yay*.pkg.tar.zst && cd .. && rm -rf yay
-
-# Instalação do YAY (helper AUR)
 if ! command -v yay &> /dev/null; then
     cd /tmp
     git clone https://aur.archlinux.org/yay.git
@@ -91,54 +88,6 @@ sudo pacman -S --noconfirm --needed git base-devel python python-pip nodejs npm
 
 # Suíte de escritório
 sudo pacman -S --noconfirm --needed libreoffice-still libreoffice-still-pt-br jre8-openjdk libmythes breeze-gtk 
-
-# Lista de pacotes do AUR a serem instalados
-packages=(
-    "wps-office"
-    "wps-office-mime"
-    "ttf-wps-fonts"
-    "wps-office-mui-pt-br"
-    "wps-office-vero-pt-br"
-    "libtiff5"
-    "qt5-styleplugins"
-    "qt6ct"
-    "qt6-tools-desktop"
-    "betterlockscreen"
-    "xidlehook"
-    "simplescreenrecorder"
-    "pkexec"
-    "djmount"
-    "autoadb-git"
-    "android-sdk-platform-tools"
-    "mythes-pt-br"
-    "libreoffice-extension-languagetool"
-    "hunspell-pt-br"
-    "hyphen-pt-br"
-    "hyph_pt_BR-213"
-    "hsqldb2-java"
-    "thunar-custom-actions"    
-)
-
-# Compila os pacotes com o yay (sem instalar, sem sudo)
-for pkg in "${packages[@]}"; do
-    yay -S --noconfirm --builddir ~/.cache/yay --downloadonly "$pkg"
-    if [ $? -ne 0 ]; then
-        echo "Erro ao compilar o pacote $pkg"
-        exit 1
-    fi
-done
-
-# Instala os pacotes compilados com pacman -U (com sudo)
-for pkg in "${packages[@]}"; do
-    sudo pacman -U --noconfirm ~/.cache/yay/"$pkg"/*.pkg.tar.zst
-    if [ $? -ne 0 ]; then
-        echo "Erro ao instalar o pacote $pkg"
-        exit 1
-    fi
-done
-
-# Limpeza do cache (opcional)
-rm -rf ~/.cache/yay/*
 
 # LightDM (gerenciador de login leve)
 sudo pacman -S --noconfirm --needed --needed lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings
