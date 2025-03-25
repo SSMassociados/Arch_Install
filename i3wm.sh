@@ -24,14 +24,19 @@ sudo systemctl enable --now fstrim.timer
 
 # Pacman
 # Ativar CleanMethod, VerbosePkgLists, Color, ParallelDownloads e adiciona LoveCandy (se não existir)
+# Pacman - Configurações otimizadas
 sudo sed -i \
     -e 's/^#\(CleanMethod\)/\1/' \
     -e 's/^#\(VerbosePkgLists\)/\1/' \
     -e 's/^#\(Color\)/\1/' \
     -e 's/^#\(ParallelDownloads *= *\).*/\1 10/' \
     -e 's/^ParallelDownloads *= *.*/ParallelDownloads = 10/' \
-    -e '/^ILoveCandy$/! { /^ParallelDownloads = 10$/ a ILoveCandy
-}' /etc/pacman.conf
+    /etc/pacman.conf
+
+# Adiciona ILoveCandy apenas se não existir
+if ! grep -q '^ILoveCandy$' /etc/pacman.conf; then
+    sudo sed -i '/^ParallelDownloads = 10$/ a ILoveCandy' /etc/pacman.conf
+fi
 
 # Descomentar o repositório multilib
 sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf && sudo pacman -Sy
