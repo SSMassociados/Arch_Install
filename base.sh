@@ -52,7 +52,7 @@ dialog wpa_supplicant mtools dosfstools base-devel linux-headers avahi xdg-user-
 xdg-utils gvfs gvfs-smb nfs-utils inetutils dnsutils bluez bluez-utils cups hplip \
 alsa-utils pipewire pipewire-alsa pipewire-pulse pipewire-jack bash-completion openssh \
 rsync reflector acpi acpi_call tlp virt-manager qemu-full edk2-ovmf bridge-utils dnsmasq \
-vde2 openbsd-netcat iptables-nft ipset firewalld flatpak sof-firmware nss-mdns acpid \
+vde2 openbsd-netcat iptables ipset firewalld flatpak sof-firmware nss-mdns acpid \
 os-prober ntfs-3g terminus-font
 
 # Só decomente a proxima linha se seu PC for legado, for usar modo BIOS/MBR (legado),
@@ -81,7 +81,7 @@ reflector.timer fstrim.timer libvirtd firewalld acpid
 
 # Criar usuário "sidiclei" apenas se ele ainda não existir
 if ! id "sidiclei" &>/dev/null; then
-    useradd -mG wheel libvirt sidiclei
+    useradd -mG wheel,libvirt sidiclei
     echo "sidiclei:password" | chpasswd
     passwd -e sidiclei
 fi
