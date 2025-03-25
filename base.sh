@@ -60,16 +60,19 @@ os-prober ntfs-3g terminus-font
 #wpa_supplicant mtools dosfstools reflector base-devel linux-headers avahi xdg-user-dirs xdg-utils \
 #gvfs gvfs-smb nfs-utils inetutils dnsutils bluez bluez-utils cups hplip alsa-utils pulseaudio bash-completion \
 #openssh rsync reflector acpi acpi_call tlp virt-manager qemu-full edk2-ovmf bridge-utils dnsmasq vde2 \
-#openbsd-netcat iptables-nft ipset firewalld flatpak sof-firmware nss-mdns acpid os-prober ntfs-3g terminus-font
+#openbsd-netcat iptables ipset firewalld flatpak sof-firmware nss-mdns acpid os-prober ntfs-3g terminus-font
 
 # Instalação do driver de vídeo para GPUs AMD
 # pacman -S --noconfirm xf86-video-amdgpu
 # Instalação dos drivers e utilitários da NVIDIA
 # pacman -S --noconfirm nvidia nvidia-utils nvidia-settings
 
-# Instalar o GRUB (modo UEFI)
+# Grub DualBoot
+sed -i 's/^#*GRUB_DISABLE_OS_PROBER=.*/GRUB_DISABLE_OS_PROBER=false/' /etc/default/grub
+
 # Instala o GRUB no modo UEFI. Altere o diretório para /boot/efi se você montou a partição EFI em /boot/efi
 grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB 
+
 # Só decomente a proxima linha se desejar instalar o GRUB no modo BIOS/MBR (legado), substituindo sdX pelo nome do disco,não pela partição
 # grub-install --target=i386-pc /dev/sdX .
 
@@ -91,4 +94,4 @@ echo "%wheel ALL=(ALL:ALL) ALL" | tee /etc/sudoers.d/sidiclei
 
 # Mensagem final
 echo "Instalação concluída! Verifique o arquivo de log para detalhes: $LOGFILE"
-printf "\e[1;32mDone! Type exit, umount -a and reboot.\e[0m\n"
+printf "\e[1;32mPronto! Digite exit, umount -a e reinicie.\e[0m\n"
