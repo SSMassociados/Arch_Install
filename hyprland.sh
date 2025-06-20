@@ -64,13 +64,13 @@ if ! command -v yay &> /dev/null; then
 fi
 
 # Instalação do Hyprland
-sudo pacman -S --noconfirm --needed hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker hyprpolkitagent wagbar rofi-wayland qt5-wayland qt6-wayland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk  feh dunst wl-clipboard cliphist xdg-user-dirs-gtk
+sudo pacman -S --noconfirm --needed hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker hyprpolkitagent waybar rofi-wayland qt5-wayland qt6-wayland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk feh dunst wl-clipboard cliphist xdg-user-dirs-gtk
 
 # Instalação de aplicações essenciais
-sudo pacman -S --noconfirm --needed kitty kitty-terminfo man-db man-pages-pt_br tmate dolphin dolphin-plugins ark kio-admin ranger firefox firefox-i18n-pt-br qbittorrent atril flameshot keepassxc geany neovim fastfetch htop mpv vlc amberol obs-studio 
+sudo pacman -S --noconfirm --needed kitty kitty-terminfo man-db man-pages-pt_br tmate dolphin dolphin-plugins ranger firefox firefox-i18n-pt-br qbittorrent atril flameshot keepassxc geany neovim fastfetch htop mpv vlc amberol obs-studio 
 
 # Fontes para melhorar a aparência e compatibilidade
-sudo pacman -S --noconfirm --needed qt5ct qt6ct kvantum nwg-look ttf-dejavu ttf-liberation ttf-ubuntu-font-family ttf-fira-code ttf-font-awesome noto-fonts noto-fonts-emoji noto-fonts-cjk otf-geist otf-geist-mono-nerd ttf-jetbrains-mono-nerd ttf-opensans noto-fonts ttf-droid ttf-roboto 
+sudo pacman -S --noconfirm --needed qt5ct qt6ct kvantum nwg-look brightnessctl noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu ttf-droid ttf-fira-code ttf-fira-sans ttf-firacode-nerd ttf-font-awesome ttf-jetbrains-mono-nerd ttf-liberation ttf-opensans ttf-roboto ttf-ubuntu-font-family
 
 # Suporte a sistema de arquivos e ferramentas para manipulação de dispositivos de armazenamento
 sudo pacman -S --noconfirm --needed os-prober intel-ucode dosfstools mtools freetype2 libisoburn fuse2 ntfs-3g e2fsprogs gvfs-{mtp,gphoto2,afc,smb} udisks2  ifuse
@@ -100,13 +100,13 @@ sudo pacman -S --noconfirm --needed zsh zsh-completions
 sudo chsh -s /usr/bin/zsh $USER 
 
 # Ferramentas de desenvolvimento (opcional)
-sudo pacman -S --noconfirm --needed git base-devel python python-pip nodejs npm
+sudo pacman -S --noconfirm --needed python python-pip nodejs npm jq
 
 # Suíte de escritório
 sudo pacman -S --noconfirm --needed libreoffice-still libreoffice-still-pt-br jre8-openjdk libmythes breeze-gtk 
 
 # Habilitar serviços 
-sudo systemctl --user enable pipewire pipewire-pulse wireplumber
+#sudo systemctl --user enable pipewire pipewire-pulse wireplumber
 
 #yay -S --noconfirm hyprshot wlogout gview visual-studio-code-bin brave-bin
 
@@ -120,4 +120,3 @@ read -p "Reiniciar agora? (s/n): " resposta
 if [[ "$resposta" =~ ^[sS]$ ]]; then
     sudo reboot
 fi
-
