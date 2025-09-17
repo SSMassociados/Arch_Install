@@ -90,10 +90,11 @@ if ! id "sidiclei" &>/dev/null; then
 fi
 
 # Adicionar sudo ao usuário do grupo wheel
-echo '%wheel ALL=(ALL:ALL) ALL' | sudo tee /etc/sudoers.d/wheel_group
-
 # Adicionar ao sudoers privilégio de sudo para um comando e um usário específico
-echo 'sidiclei ALL=(ALL) NOPASSWD: /usr/bin/grub-reboot, /usr/bin/systemctl reboot' | sudo tee /etc/sudoers.d/sidiclei_user
+cat << EOF | sudo tee /etc/sudoers.d/sidiclei
+%wheel ALL=(ALL:ALL) ALL
+sidiclei ALL=(ALL) NOPASSWD: /usr/bin/grub-reboot, /usr/bin/systemctl reboot
+EOF
 
 # Mensagem final
 echo "Instalação concluída! Verifique o arquivo de log para detalhes: $LOGFILE"
