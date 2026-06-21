@@ -1,34 +1,48 @@
 #!/bin/bash
 
-# https://github.com/devk0n/fyrefiles
-# https://github.com/gaurav23b/simple-hyprland?tab=readme-ov-file
-# https://tiesen.id.vn/blogs/arch-linux-hyprland-setup
+# =============================================================================
+# hyprland.sh — Instalação do Hyprland para Arch Linux
+# Executar como usuário comum com sudo disponível (NÃO como root direto)
+#
+# Referências:
+#   Dotfiles:  https://github.com/devk0n/fyrefiles
+#   Config:    https://github.com/gaurav23b/simple-hyprland
+#   Guia:      https://tiesen.id.vn/blogs/arch-linux-hyprland-setup
+# =============================================================================
 
-# Configurações de depuração
-set -euo pipefail  # Garante que o script pare em qualquer erro
-set -x  # Ativa modo de depuração para ver comandos executados
-LOGFILE="script.log"
-exec > >(tee -a "$LOGFILE") 2>&1  # Redireciona saída e erros para o arquivo de log
+set -euo pipefail
+LOGFILE="$HOME/hyprland-install.log"
+exec > >(tee -a "$LOGFILE") 2>&1
 
-# Função para verificar erros
-check_error() {
-    if [ $? -ne 0 ]; then
-        echo "Erro: Comando falhou - $1"
-        echo "Consulte o arquivo de log para mais detalhes: $LOGFILE"
-        exit 1  # Encerra o script em caso de erro crítico
-    fi
-}
+# -----------------------------------------------------------------------------
+# Verificação: não rodar como root puro
+# -----------------------------------------------------------------------------
+if [ "$EUID" -eq 0 ] && [ -z "${SUDO_USER:-}" ]; then
+    echo "Erro: Execute este script como usuário comum com sudo, não como root."
+    echo "Exemplo: bash hyprland.sh"
+    exit 1
+fi
 
-# Configuração básica do sistema
+TARGET_USER="${SUDO_USER:-$USER}"
+TARGET_HOME=$(eval echo "~$TARGET_USER")
+
+# -----------------------------------------------------------------------------
+# Funções auxiliares
+# -----------------------------------------------------------------------------
+log() { echo "[$(date '+%H:%M:%S')] $*"; }
+
+# -----------------------------------------------------------------------------
+# Sistema base
+# -----------------------------------------------------------------------------
+log "Sincronizando horário..."
 sudo timedatectl set-ntp true
 sudo hwclock --systohc
-
-# Fstrim
 sudo systemctl enable --now fstrim.timer
 
-# Pacman
-# Ativar CleanMethod, VerbosePkgLists, Color, ParallelDownloads e adiciona LoveCandy (se não existir)
-# Pacman - Configurações otimizadas
+# -----------------------------------------------------------------------------
+# Pacman — otimizações
+# -----------------------------------------------------------------------------
+log "Configurando pacman..."
 sudo sed -i \
     -e 's/^#\(CleanMethod\)/\1/' \
     -e 's/^#\(VerbosePkgLists\)/\1/' \
@@ -37,86 +51,203 @@ sudo sed -i \
     -e 's/^ParallelDownloads *= *.*/ParallelDownloads = 10/' \
     /etc/pacman.conf
 
-# Adiciona ILoveCandy apenas se não existir
-if ! grep -q '^ILoveCandy$' /etc/pacman.conf; then
-    sudo sed -i '/^ParallelDownloads = 10$/ a ILoveCandy' /etc/pacman.conf
-fi
+grep -q '^ILoveCandy$' /etc/pacman.conf \
+    || sudo sed -i '/^ParallelDownloads = 10$/ a ILoveCandy' /etc/pacman.conf
 
-# Descomentar o repositório multilib
-sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf && sudo pacman -Sy
+# Habilitar multilib
+sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
+sudo pacman -Sy
 
-# Atualizar mirrorlist para obter os melhores mirrors
+# -----------------------------------------------------------------------------
+# Mirrors
+# -----------------------------------------------------------------------------
+log "Atualizando mirrors..."
 sudo pacman -S --noconfirm --needed reflector
 sudo systemctl enable --now reflector.timer
 sudo reflector -l 7 -a 24 -p https --sort rate --save /etc/pacman.d/mirrorlist
 sudo pacman -Sy
 
-# Instalação do YAY (helper AUR)
-sudo pacman -S --needed git base-devel
-if ! command -v yay &> /dev/null; then
-    cd /tmp
-    git clone https://aur.archlinux.org/yay.git
-    cd yay
-    makepkg --noconfirm -s
-    sudo pacman -U --noconfirm yay*.pkg.tar.zst
-    cd ..
-    rm -rf yay
+# -----------------------------------------------------------------------------
+# YAY — AUR helper (deve rodar como usuário, não root)
+# -----------------------------------------------------------------------------
+log "Instalando yay..."
+if ! command -v yay &>/dev/null; then
+    sudo pacman -S --noconfirm --needed git base-devel
+    BUILD_DIR=$(sudo -u "$TARGET_USER" mktemp -d)
+    sudo -u "$TARGET_USER" git clone https://aur.archlinux.org/yay.git "$BUILD_DIR/yay"
+    cd "$BUILD_DIR/yay"
+    sudo -u "$TARGET_USER" makepkg --noconfirm -si
+    cd /
+    rm -rf "$BUILD_DIR"
 fi
 
-# Instalação do Hyprland
-sudo pacman -S --noconfirm --needed hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker hyprpolkitagent waybar rofi-wayland qt5-wayland qt6-wayland xdg-desktop-portal-hyprland xdg-desktop-portal-gtk feh dunst wl-clipboard cliphist xdg-user-dirs-gtk
+# -----------------------------------------------------------------------------
+# Hyprland e componentes Wayland
+# -----------------------------------------------------------------------------
+log "Instalando Hyprland..."
+sudo pacman -S --noconfirm --needed \
+    hyprland hyprlock hypridle hyprcursor hyprpaper hyprpicker hyprpolkitagent \
+    waybar rofi-wayland \
+    qt5-wayland qt6-wayland \
+    xdg-desktop-portal-hyprland xdg-desktop-portal-gtk \
+    wl-clipboard cliphist \
+    xdg-user-dirs-gtk \
+    mako \        # notificações nativas Wayland (substituiu dunst)
+    swaync        # alternativa ao mako com painel de notificações
 
-# Instalação de aplicações essenciais
-sudo pacman -S --noconfirm --needed kitty kitty-terminfo man-db man-pages-pt_br tmate dolphin dolphin-plugins ranger firefox firefox-i18n-pt-br qbittorrent atril flameshot keepassxc geany neovim fastfetch htop mpv vlc amberol obs-studio 
+# Nota: hyprpolkitagent precisa ser iniciado na config do Hyprland:
+# exec-once = /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+# ou, para hyprpolkitagent:
+# exec-once = systemctl --user start hyprpolkitagent
 
-# Fontes para melhorar a aparência e compatibilidade
-sudo pacman -S --noconfirm --needed qt5ct qt6ct kvantum nwg-look brightnessctl noto-fonts noto-fonts-cjk noto-fonts-emoji ttf-dejavu ttf-droid ttf-fira-code ttf-fira-sans ttf-firacode-nerd ttf-font-awesome ttf-jetbrains-mono-nerd ttf-liberation ttf-opensans ttf-roboto ttf-ubuntu-font-family
+# -----------------------------------------------------------------------------
+# Aplicações essenciais
+# -----------------------------------------------------------------------------
+log "Instalando aplicações..."
+sudo pacman -S --noconfirm --needed \
+    kitty kitty-terminfo \
+    man-db man-pages-pt_br \
+    tmate \
+    dolphin dolphin-plugins \
+    ranger \
+    firefox firefox-i18n-pt-br \
+    qbittorrent atril flameshot keepassxc \
+    geany neovim fastfetch htop \
+    mpv vlc amberol \
+    obs-studio
 
-# Suporte a sistema de arquivos e ferramentas para manipulação de dispositivos de armazenamento
-sudo pacman -S --noconfirm --needed os-prober intel-ucode dosfstools mtools freetype2 libisoburn fuse2 ntfs-3g e2fsprogs gvfs-{mtp,gphoto2,afc,smb} udisks2  ifuse
+# -----------------------------------------------------------------------------
+# Aparência e temas
+# -----------------------------------------------------------------------------
+log "Instalando temas e ferramentas de aparência..."
+sudo pacman -S --noconfirm --needed \
+    qt5ct qt6ct kvantum nwg-look brightnessctl
 
-# Compactadores e descompactadores
-sudo pacman -S --noconfirm --needed ark 
+# -----------------------------------------------------------------------------
+# Fontes
+# -----------------------------------------------------------------------------
+log "Instalando fontes..."
+sudo pacman -S --noconfirm --needed \
+    noto-fonts noto-fonts-cjk noto-fonts-emoji \
+    ttf-dejavu ttf-droid \
+    ttf-fira-code ttf-fira-sans ttf-firacode-nerd \
+    ttf-font-awesome \
+    ttf-jetbrains-mono-nerd \
+    ttf-liberation ttf-opensans ttf-roboto \
+    ttf-ubuntu-font-family
 
+# -----------------------------------------------------------------------------
+# Filesystem e dispositivos de armazenamento
+# -----------------------------------------------------------------------------
+log "Instalando suporte a filesystems..."
+sudo pacman -S --noconfirm --needed \
+    os-prober intel-ucode dosfstools mtools \
+    freetype2 libisoburn fuse2 ntfs-3g e2fsprogs \
+    gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc gvfs-smb \
+    udisks2 ifuse
+
+# -----------------------------------------------------------------------------
+# Compactadores
+# (ark é apenas o frontend — os backends abaixo são necessários para
+#  que os formatos apareçam como suportados na interface)
+# -----------------------------------------------------------------------------
+log "Instalando compactadores..."
+sudo pacman -S --noconfirm --needed \
+    ark \
+    p7zip unrar unzip zip lhasa \
+    cabextract unace xz arj unarj \
+    tar gzip bzip2 ncompress
+
+# -----------------------------------------------------------------------------
 # Áudio
-sudo pacman -S --noconfirm --needed pipewire pipewire-{alsa,pulse,jack} wireplumber helvum pavucontrol sof-firmware
+# -----------------------------------------------------------------------------
+log "Configurando áudio..."
+sudo pacman -S --noconfirm --needed \
+    pipewire pipewire-alsa pipewire-pulse pipewire-jack \
+    wireplumber helvum pavucontrol sof-firmware
 
+# Habilitar serviços de áudio para o usuário atual
+sudo -u "$TARGET_USER" systemctl --user enable --now \
+    pipewire pipewire-pulse wireplumber
+
+# -----------------------------------------------------------------------------
 # Codecs de mídia
-sudo pacman -S --noconfirm --needed gst-libav gst-plugins-{base,good,bad,ugly} gstreamer-vaapi x265 x264 dvd+rw-tools dvdauthor dvgrab libmad libde265 libdv libdvdcss libdvdread libdvdnav libvorbis lame faac faad2 flac a52dec 
+# -----------------------------------------------------------------------------
+log "Instalando codecs..."
+sudo pacman -S --noconfirm --needed \
+    gst-libav \
+    gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly \
+    gstreamer-vaapi \
+    x265 x264 libmad libde265 libdv \
+    libdvdcss libdvdread libdvdnav libvorbis \
+    lame faac faad2 flac a52dec \
+    dvd+rw-tools dvdauthor dvgrab
 
+# -----------------------------------------------------------------------------
 # Bluetooth
+# -----------------------------------------------------------------------------
+log "Configurando Bluetooth..."
 sudo pacman -S --noconfirm --needed bluez bluez-utils blueman
 sudo systemctl enable --now bluetooth
 
+# -----------------------------------------------------------------------------
 # Impressão e scan
-sudo pacman -S --noconfirm --needed avahi nss-mdns cups cups-pdf libcups print-manager system-config-printer simple-scan
+# -----------------------------------------------------------------------------
+log "Instalando impressão..."
+sudo pacman -S --noconfirm --needed \
+    avahi nss-mdns cups cups-pdf libcups \
+    print-manager system-config-printer simple-scan
 
-# ADB & SCRCPY
+# -----------------------------------------------------------------------------
+# ADB e SCRCPY
+# -----------------------------------------------------------------------------
+log "Instalando ADB/SCRCPY..."
 sudo pacman -S --noconfirm --needed scrcpy android-tools android-udev
-sudo usermod -aG adbusers $USER
+sudo usermod -aG adbusers "$TARGET_USER"
 
+# -----------------------------------------------------------------------------
 # ZSH
-sudo pacman -S --noconfirm --needed zsh zsh-completions 
-sudo chsh -s /usr/bin/zsh $USER 
+# -----------------------------------------------------------------------------
+log "Instalando ZSH..."
+sudo pacman -S --noconfirm --needed zsh zsh-completions
+sudo chsh -s /usr/bin/zsh "$TARGET_USER"
 
-# Ferramentas de desenvolvimento (opcional)
+# -----------------------------------------------------------------------------
+# Ferramentas de desenvolvimento
+# -----------------------------------------------------------------------------
+log "Instalando ferramentas de desenvolvimento..."
 sudo pacman -S --noconfirm --needed python python-pip nodejs npm jq
 
+# -----------------------------------------------------------------------------
 # Suíte de escritório
-sudo pacman -S --noconfirm --needed libreoffice-still libreoffice-still-pt-br jre8-openjdk libmythes breeze-gtk 
+# -----------------------------------------------------------------------------
+log "Instalando LibreOffice..."
+sudo pacman -S --noconfirm --needed \
+    libreoffice-still libreoffice-still-pt-br \
+    jre8-openjdk libmythes breeze-gtk
 
-# Habilitar serviços 
-#sudo systemctl --user enable pipewire pipewire-pulse wireplumber
+# -----------------------------------------------------------------------------
+# Pacotes AUR (descomente quando quiser instalar)
+# -----------------------------------------------------------------------------
+# sudo -u "$TARGET_USER" yay -S --noconfirm \
+#     hyprshot \
+#     wlogout \
+#     gview \
+#     visual-studio-code-bin \
+#     brave-bin
 
-#yay -S --noconfirm hyprshot wlogout gview visual-studio-code-bin brave-bin
-
-# sddm
+# -----------------------------------------------------------------------------
+# SDDM — display manager
+# -----------------------------------------------------------------------------
+log "Instalando SDDM..."
 sudo pacman -S --noconfirm --needed sddm
 sudo systemctl enable sddm.service
 
-# Mensagem final
-echo "Instalação concluída! Verifique o arquivo de log para detalhes: $LOGFILE"
-read -p "Reiniciar agora? (s/n): " resposta
+# -----------------------------------------------------------------------------
+# Fim
+# -----------------------------------------------------------------------------
+log "Instalação concluída! Log salvo em: $LOGFILE"
+read -rp "Reiniciar agora? (s/n): " resposta
 if [[ "$resposta" =~ ^[sS]$ ]]; then
     sudo reboot
 fi
